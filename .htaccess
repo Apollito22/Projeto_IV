@@ -1,0 +1,4 @@
+Options -Indexes
+RewriteEngine On
+RewriteRule ^(?:app|config|database)(?:/|$) - [F,L,NC]
+RewriteRule ^(?:README|FRONTEND)\.md$ - [F,L,NC]

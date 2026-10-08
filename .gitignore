@@ -1,0 +1,5 @@
+.DS_Store
+config/primeiro_admin.estado
+public/assets/uploads/*
+!public/assets/uploads/.htaccess
+!public/assets/uploads/.gitkeep
