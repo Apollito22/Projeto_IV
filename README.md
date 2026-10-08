@@ -1,52 +1,54 @@
-# Portal SI — Aula 09
+# portal-si
 
-Portal acadêmico em PHP nativo, HTML5, CSS3 e PostgreSQL, seguindo a apostila da Aula 09. Não utiliza JavaScript.
+Portal acadêmico e painel administrativo em PHP nativo, HTML5, CSS3 e Bootstrap 5.3.8. O Bootstrap utiliza somente o CSS local em `public/assets/css/bootstrap.min.css`. Não há JavaScript.
 
 ## Executar no XAMPP
 
-1. Mantenha a pasta em `/Applications/XAMPP/xamppfiles/htdocs/portal-si_equipe_Fatal_etapa1` no Mac ou na pasta `htdocs` do XAMPP no Windows.
-2. Inicie o Apache e o serviço PostgreSQL.
-3. Em um banco novo chamado `portal_si`, execute `database/schema.sql` e depois `database/seed.sql`. Em um banco que já possui as oito tabelas, execute apenas `database/seed.sql` se as categorias ainda não estiverem cadastradas. Não execute novamente o schema sobre tabelas existentes.
-4. Confira `config/database.php`: por padrão, host `127.0.0.1`, porta `5432`, banco `portal_si`, usuário `postgres` e senha `admin`. A conexão também aceita DB_HOST, DB_PORT, DB_NAME, DB_USER e DB_PASSWORD.
-5. Abra `http://localhost/portal-si_equipe_Fatal_etapa1/public/`.
+1. Coloque a pasta `portal-si` em `htdocs` e inicie Apache e PostgreSQL.
+2. Crie um banco PostgreSQL chamado `portal_si` e execute somente `database/schema.sql`. As oito tabelas começam vazias. Não existe seed.sql no projeto.
+3. Confira os parâmetros em `config/database.php`: host `127.0.0.1`, porta `5432`, banco `portal_si`, usuário `postgres` e senha `admin`. Também são aceitas as variáveis DB_HOST, DB_PORT, DB_NAME, DB_USER e DB_PASSWORD.
+4. Abra `http://localhost/portal-si/public/`.
 
-Requer PHP 7.4 ou superior, com `pdo_pgsql` e `mbstring`. Em hospedagem, configure o diretório público do servidor como a pasta `public`, mantendo `app`, `config` e `database` fora do acesso público.
+Em um banco com estrutura anterior, `database/admin.sql` habilita IDs automáticos de conteúdos, mídias e auditoria sem inserir dados. Não execute novamente schema.sql sobre tabelas existentes. `database/postgres.sql` contém somente a tabela de usuários da etapa anterior; a instalação completa usa schema.sql.
 
-O arquivo `database/postgres.sql` cria apenas a tabela de usuários para a etapa anterior. Para uma instalação completa da Aula 09, use o schema com as oito tabelas.
+Requer PHP 7.4 ou superior com pdo_pgsql, mbstring, fileinfo e gd. A pasta `public/assets/uploads` precisa permitir gravação pelo Apache. Em hospedagem, configure a raiz pública como `public`.
 
-## Rotas
+## Organização Mini-MVC
 
-- `public/index.php`: home pública com hero, nove publicações recentes e apresentação do projeto.
-- `public/login.php`: autenticação existente por e-mail e senha.
-- `public/cadastro.php`: cadastro público com perfil aluno.
-- `public/home.php`: painel do usuário autenticado.
-- `public/logout.php`: saída por POST e token CSRF.
-- `public/categoria.php?slug=acoes-sociais`: filtro de publicações por categoria.
-- `public/conteudo.php?slug=slug-da-publicacao`: leitura do conteúdo publicado.
+- `app/controllers`: AuthController, HomeController, ConteudoController e AdminController coordenam as solicitações.
+- `app/models`: Usuario, Categoria, Conteudo, Midia e Auditoria concentram as consultas PDO.
+- `app/helpers`: auth.php controla acesso por perfil; seguranca.php contém escape e CSRF; upload.php valida e salva imagens.
+- `app/views/admin`: login, cadastro_usuarios.php e telas administrativas.
+- `app/views/home`: página inicial e leitura de conteúdo.
+- `app/views/layout`: header.php e footer.php compartilhados.
+- `app/views/errors/403.php`: acesso negado.
+- `config/database.php`: conexão PDO singleton.
+- `config/session.php`: configuração da sessão.
+- `public/index.php`: Front Controller. Os demais arquivos públicos encaminham para ele.
 
-As duas rotas de leitura reutilizam os models e o layout para que os links do menu e dos cartões funcionem. Conteúdos inexistentes ou não publicados retornam 404.
+## Funcionalidades
 
-## Organização
+- `public/index.php`: portal com publicações recentes.
+- `public/categoria.php?slug=slug-da-categoria`: filtro por categoria.
+- `public/conteudo.php?slug=slug-da-publicacao`: leitura de publicação.
+- `public/login.php`: autenticação por e-mail.
+- `public/cadastro_usuarios.php`: cadastro público com perfil aluno.
+- `public/home.php`: painel conforme perfil.
+- `public/admin.php`: dashboard, cadastro de categorias, CRUD de notícias, upload de capa, galeria e gerenciamento de links.
+- `public/logout.php`: saída por POST com CSRF.
 
-- `app/Models/Categoria.php`: busca das categorias ativas pelo campo `ativo`, em ordem de `ordem` e `id`.
-- `app/Models/Conteudo.php`: consultas preparadas com junções de categorias e usuários pelo campo `autor_id`.
-- `app/Controllers/HomeController.php`: dados e tratamento de erros da home.
-- `app/Controllers/ConteudoController.php`: leitura de publicação.
-- `app/Views/layout/header.php` e `footer.php`: estrutura compartilhada com `require_once`.
-- `app/Views/home/index.php`: conteúdo da home.
-- `app/Views/auth.php`: formulário compartilhado de login e cadastro.
-- `public/assets/css/style.css`: estilos do portal, formulários e painel.
+Administradores gerenciam todos os conteúdos. Editores gerenciam os próprios conteúdos e visualizam as próprias imagens. Alunos não acessam a administração. O perfil é verificado no banco a cada solicitação administrativa.
 
-Foram mantidos os nomes `Models` e `Views` já existentes no projeto. As consultas usam `ativo` e `autor_id`, conforme o schema, e a navegação usa a sessão `usuario` do login existente.
+A instalação por schema.sql começa com todas as tabelas vazias. Dados e o estado do cadastro inicial do ambiente local não são incluídos no repositório. Não existe conta administrativa inicial. Para criar o primeiro administrador, abra `public/primeiro_admin.php` no navegador do próprio computador do servidor. O link também aparece no login enquanto o cadastro inicial está disponível. Depois da criação, o formulário é bloqueado e o link desaparece. O encerramento fica registrado em `config/primeiro_admin.estado`, fora do acesso público, e permanece mesmo se a conta for apagada do banco. Não há cadastro de administradores pelo painel. A pasta config precisa permitir a gravação desse registro pelo Apache. O administrador cadastra as categorias em `admin.php?acao=categorias` antes de criar as notícias. Os textos das notícias usam a tabela existente conteudos. O cadastro público mantém o perfil aluno.
 
-## Dados iniciais
+O formulário permite escolher status, destaque e categoria; criar, editar e excluir texto; enviar, substituir e remover a capa; adicionar, alterar e remover o link relacionado. Exclusões exigem confirmação no formulário. As alterações ficam registradas em auditoria.
 
-O seed contém as seis categorias da apostila: Ações Sociais, Atividades Complementares, Projetos de Extensão, Eventos Acadêmicos, Produção Científica e Notícias Gerais. Pode ser executado novamente sem duplicar registros. Não cria usuários ou publicações de exemplo.
+Imagens: JPEG, PNG ou WebP até 5 MB, com até 6000 pixels por lado e 12 milhões de pixels no total. Links HTTP e HTTPS usam o campo existente link_youtube.
 
-A home exibe apenas conteúdos com `status = 'publicado'`, data de publicação preenchida e categoria ativa, ordenados por data decrescente. Enquanto não houver conteúdos, apresenta uma mensagem de lista vazia. Novos registros de conteúdo devem receber um `id` válido, conforme a estrutura atual da tabela.
+As tabelas são usuarios, categorias, conteudos, tags, conteudo_tags, eventos, midias e auditoria. Conteúdos publicados com data preenchida e categoria ativa aparecem no portal.
 
-## Verificar
+## Bootstrap
 
-Confira a home sem login, o menu com as seis categorias, o cadastro e a autenticação, o painel protegido e a saída. Teste a grade em desktop, tablet até 1024px e celular até 768px. A grade possui três, duas e uma coluna, respectivamente; o menu se torna vertical no celular.
+CSS oficial: https://getbootstrap.com/docs/5.3/getting-started/download/
 
-Todas as consultas ficam nos models. Saídas dinâmicas usam `e()` e os parâmetros externos são vinculados pelo PDO.
+Os formulários usam form-control, form-select, form-check-input e btn; as mensagens usam alert; a tabela administrativa usa table. A aparência original é complementada por style.css. Nenhum componente depende de JavaScript.
